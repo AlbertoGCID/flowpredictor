@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import telebot
 import io
-import os
 import time
 from src.core.utils.telebot_api import conexion_verify
 bot = telebot.TeleBot("6114856166:AAGYqKXk1qSoupZZ9thLQOjT5QevfdL4aMA", parse_mode=None) 
@@ -12,7 +11,7 @@ import numpy as np
 import io
 import time
 import seaborn as sns
-from typing import List, Tuple, Union,Any,Dict
+from typing import List, Tuple, Union,Any
 import pandas as pd
 
 
@@ -26,31 +25,6 @@ class Graficas:
         - ultimo_envio (float): A timestamp representing the last time a plot was sent.
         """
         self.ultimo_envio = ultimo_envio
-
-    def plot2feats(self,feat1:np.ndarray,feat2:np.ndarray,pred_config:Dict)-> None:
-        x_indices = np.arange(len(feat1))
-        # Crear la figura y los ejes
-        fig, ax = plt.subplots(figsize=(20, 10))
-        # Graficar los valores reales (y_test)
-        ax.plot(x_indices, feat1, label='Real Value',  color='red',linestyle='-')
-
-        # Graficar las predicciones del modelo LSTM (y_pred_lstm)
-        ax.plot(x_indices, feat2 , label='LSTM prediction', color='green', linestyle='--')
-
-        # Etiquetas de los ejes y título
-        ax.set_xlabel('Day')
-        ax.set_ylabel('Outflow value')
-        ax.set_title(f"{pred_config['output']} Flow in test with {pred_config['offset']} day gap and {pred_config['input_width']} day info comparison")
-
-        # Leyenda
-        ax.legend()
-        output_folder = 'evaluate_results'
-        os.makedirs(output_folder, exist_ok=True)
-
-        # Guardar la figura en la carpeta 'evaluate_results'
-        plt.savefig(os.path.join(output_folder, "last_graphic.png"))
-        # Mostrar la gráfica
-        plt.show()
 
     def plot_dataframe(self, df: pd.DataFrame, x_column: str, y_column: str, ultimo_envio: float) -> float:
         """

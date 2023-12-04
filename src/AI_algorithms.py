@@ -5,184 +5,269 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras import layers, regularizers
 from tensorflow.keras.callbacks import Callback,EarlyStopping,ModelCheckpoint
 from tensorflow.keras.layers import LSTM, Dense,BatchNormalization,Dropout
-import hydroeval
-import pandas as pd
-from sklearn.metrics import confusion_matrix, mean_squared_error
-from sklearn.preprocessing import MinMaxScaler
+
 from typing import Dict,Any,Optional,Union,List
 from IPython import display
 from matplotlib import pyplot as plt
-from datetime import datetime
+
+
+class PlotLearning(Callback):
+    """
+    Callback to plot the learning curves of the model during training.
+
+    Parameters:
+        num_capas (int): Number of layers in the neural network.
+        unidades (int): Number of units/neurons per layer.
+        batch (int): Batch size used for training.
+        epochs (int): Number of training epochs.
+
+    Attributes:
+        num_capas (int): Number of layers in the neural network.
+        unidades (int): Number of units/neurons per layer.
+        batch (int): Batch size used for training.
+        epochs (int): Number of training epochs.
+        metrics (dict): Dictionary to store training metrics.
+
+    Methods:
+        on_train_begin(self, logs={}): Called at the beginning of training.
+        on_epoch_end(self, epoch, logs={}): Called at the end of each training epoch.
+    """
+    def __init__(self, num_capas: int, unidades: int, batch: int, epochs: int):
+        self.num_capas = num_capas
+        self.unidades = unidades
+        self.batch = batch
+        self.epochs = epochs
+        self.metrics = {}
+        super(PlotLearning, self).__init__()
+
+    def on_train_begin(self, logs={}):
+        """
+        Called at the beginning of training.
+
+        Parameters:
+            logs (dict): Dictionary of training metrics.
+        """
+        self.metrics = {}
+        for metric in logs:
+            self.metrics[metric] = []
+
+    def on_epoch_end(self, epoch: int, logs: Dict[str, Any] = {}):
+        """
+        Called at the end of each training epoch.
+
+        Parameters:
+            epoch (int): Current epoch number.
+            logs (Dict[str, Any]): Dictionary of training metrics.
+        """
+          # Storing metrics
+        for metric in logs:
+            if metric in self.metrics:
+                self.metrics[metric].append(logs.get(metric))
+            else:
+                self.metrics[metric] = [logs.get(metric)]
+
+        # Plotting
+        metrics = [x for x in logs if 'val' not in x]
+        f, axs = plt.subplots(1, len(metrics), figsize=(15, 5))
+        plt.clf()
+
+        # Add the number of layers and neurons to the graph title
+        graph_title = f"Capas: {self.num_capas}, Neuronas por capa: {self.unidades}, Batch: {self.batch}, Epochs: {self.epochs}"
+
+        for i, metric in enumerate(metrics):
+            axs[i].plot(range(1, epoch + 2), self.metrics[metric], label=metric)
+            if logs['val_' + metric]:
+                axs[i].plot(range(1, epoch + 2), self.metrics['val_' + metric], label='val_' + metric)
+            axs[i].legend()
+            axs[i].grid()
+
+            # Add title to the graph
+            axs[i].set_title(graph_title)
+
+        plt.tight_layout()
+
+        # Create the filename to save the graph
+        directory = os.getcwd()
+        graph_name = f"num_capas_{self.num_capas}_unidades_{self.unidades}_batch_{self.batch}_epochs_{self.epochs}.png"
+        graph_path = os.path.join(directory, 'graficos_lstm', graph_name)
+
+        # Save the graph to the specified path
+        plt.savefig(graph_path)
+        plt.show()
 
 
 
+def crear_red(data: tf.Tensor,
+              num_capas_ocultas: int = 1,
+              num_neuronas: int = 32,
+              funcion_activacion: str = 'relu',
+              regularizador: float = 0.01,
+              optimizador: float = 0.001,
+              num_salidas: int = 1,
+              fn_perdida: tf.keras.losses.Loss = tf.keras.losses.MeanSquaredError(),
+              metrica: tf.keras.metrics.Metric = tf.keras.metrics.MeanSquaredError(),
+              clip_value: Optional[Union[float, int]] = None,
+              clip_norm: Optional[Union[float, int]] = None) -> tf.keras.Model:
+    """
+    Creates a neural network model.
 
-def lstm_create(param_config: dict) -> Sequential:
+    Parameters:
+        data (tf.Tensor): Input data as a TensorFlow tensor with shape (num_samples, num_features).
+
+        num_capas_ocultas (int): Number of hidden layers in the neural network. Default is 1.
+
+        num_neuronas (int): Number of neurons in each hidden layer. Default is 32.
+
+        funcion_activacion (str): Activation function for hidden layers. Default is 'relu'.
+
+        regularizador (float): L2 regularization strength. Default is 0.01.
+
+        optimizador (float): Learning rate for the optimizer. Default is 0.001.
+
+        num_salidas (int): Number of output neurons. Default is 1.
+
+        fn_perdida (tf.keras.losses.Loss): Loss function for model training. Default is MeanSquaredError.
+
+        metrica (tf.keras.metrics.Metric): Evaluation metric for model performance. Default is MeanSquaredError.
+
+        clip_value (Optional[Union[float, int]]): Clip value for gradient clipping. Default is None.
+
+        clip_norm (Optional[Union[float, int]]): Clip norm for gradient clipping. Default is None.
+
+    Returns:
+        tf.keras.Model: Compiled neural network model.
+    """
+    modelo = Sequential()
+    num_entradas = data.shape[1]
+
+    modelo.add(layers.InputLayer(input_shape=(num_entradas,)))
+    
+    for _ in range(num_capas_ocultas):
+        modelo.add(layers.Dense(num_neuronas, activation=funcion_activacion,
+                                kernel_regularizer=regularizers.L2(regularizador)))
+
+    modelo.add(layers.Dense(num_salidas, activation='linear',
+                            kernel_regularizer=regularizers.L2(regularizador)))
+
+    optimizer = tf.keras.optimizers.Adam(learning_rate=optimizador, clipvalue=clip_value, clipnorm=clip_norm)
+    modelo.compile(loss=fn_perdida, optimizer=optimizer, metrics=metrica)
+
+    return modelo
+
+
+def crear_red_ann(data: tf.Tensor,
+                  num_capas_ocultas: int = 1,
+                  num_neuronas: int = 32,
+                  funcion_activacion: str = 'relu',
+                  regularizador: float = 0.01,
+                  optimizador: float = 0.001,
+                  num_salidas: int = 1,
+                  fn_perdida: tf.keras.losses.Loss = tf.keras.losses.MeanSquaredError(),
+                  metrica: tf.keras.metrics.Metric = tf.keras.metrics.MeanSquaredError(),
+                  clip_value: Optional[Union[float, int]] = None,
+                  clip_norm: Optional[Union[float, int]] = None) -> tf.keras.Model:
+    """
+    Creates a neural network model.
+
+    Parameters:
+        data (tf.Tensor): Input data as a TensorFlow tensor with shape (num_samples, num_features).
+
+        num_capas_ocultas (int): Number of hidden layers in the neural network. Default is 1.
+
+        num_neuronas (int): Number of neurons in each hidden layer. Default is 32.
+
+        funcion_activacion (str): Activation function for hidden layers. Default is 'relu'.
+
+        regularizador (float): L2 regularization strength. Default is 0.01.
+
+        optimizador (float): Learning rate for the optimizer. Default is 0.001.
+
+        num_salidas (int): Number of output neurons. Default is 1.
+
+        fn_perdida (tf.keras.losses.Loss): Loss function for model training. Default is MeanSquaredError.
+
+        metrica (tf.keras.metrics.Metric): Evaluation metric for model performance. Default is MeanSquaredError.
+
+        clip_value (Optional[Union[float, int]]): Clip value for gradient clipping. Default is None.
+
+        clip_norm (Optional[Union[float, int]]): Clip norm for gradient clipping. Default is None.
+
+    Returns:
+        tf.keras.Model: Compiled neural network model.
+    """
+    modelo = Sequential()
+    num_entradas = data.shape[1]
+
+    modelo.add(layers.InputLayer(input_shape=(num_entradas,)))
+    
+    for _ in range(num_capas_ocultas):
+        modelo.add(layers.Dense(num_neuronas, activation=funcion_activacion,
+                                kernel_regularizer=regularizers.L2(regularizador)))
+
+    modelo.add(layers.Dense(num_salidas, activation='linear',
+                            kernel_regularizer=regularizers.L2(regularizador)))
+
+    optimizer = tf.keras.optimizers.Adam(learning_rate=optimizador, clipvalue=clip_value, clipnorm=clip_norm)
+    modelo.compile(loss=fn_perdida, optimizer=optimizer, metrics=metrica)
+
+    return modelo
+
+
+def crearmodelo(num_capas: int,
+                unidades: int,
+                batchnorm: int,
+                dropout: int,
+                dropout_rate: float,
+                seed: Optional[int],
+                label_width: int,
+                act: Optional[str] = 'None') -> tf.keras.models.Sequential:
     """
     Creates an LSTM model.
 
     Parameters:
-        param_config (dict): Configuration parameters for the LSTM model.
-            num_layers (int): Number of LSTM layers in the model.
-            units (int): Number of units/neurons in each LSTM layer.
-            batchnorm (int): Whether to use Batch Normalization (1 for True, 0 for False).
-            dropout (int): Whether to use Dropout (1 for True, 0 for False).
-            dropout_rate (float): Dropout rate if dropout is enabled.
-            seed (Optional[int]): Random seed for reproducibility.
-            label_width (int): Number of output units in the final Dense layer.
-            act (Optional[str]): Activation function for the final Dense layer ('None', 'sigmoid', or 'linear').
+        num_capas (int): Number of LSTM layers in the model.
+        unidades (int): Number of units/neurons in each LSTM layer.
+        batchnorm (int): Whether to use Batch Normalization (1 for True, 0 for False).
+        dropout (int): Whether to use Dropout (1 for True, 0 for False).
+        dropout_rate (float): Dropout rate if dropout is enabled.
+        seed (Optional[int]): Random seed for reproducibility.
+        label_width (int): Number of output units in the final Dense layer.
+        act (Optional[str]): Activation function for the final Dense layer ('None', 'sigmoid', or 'linear').
 
     Returns:
         tf.keras.models.Sequential: LSTM model.
-    
-    Example of use:
-    param_config = {
-    'num_layers': 2,
-    'units': 32,
-    'batchnorm': 1,
-    'dropout': 1,
-    'dropout_rate': 0.5,
-    'seed': 42,
-    'label_width': 1,
-    'act': 'sigmoid'
-    }
-    model = lstm_create(param_config)
     """
     lstm_model = Sequential()
 
-    if param_config['num_layers'] > 1:
-        for i in range(param_config['num_layers']):
-            lstm_model.add(LSTM(param_config['units'], return_sequences=True))
+    if num_capas > 1:
+        for i in range(num_capas):
+            lstm_model.add(LSTM(unidades, return_sequences=True))
             
-            if param_config['dropout'] == 1:
-                lstm_model.add(Dropout(param_config['dropout_rate'], seed=param_config['seed']))
-            if param_config['batchnorm'] == 1:
+            if dropout == 1:
+                lstm_model.add(Dropout(dropout_rate, seed=seed))
+            if batchnorm == 1:
                 lstm_model.add(BatchNormalization(axis=-1, center=True, scale=True))
 
-        lstm_model.add(LSTM(units=param_config['units'], return_sequences=False))
+        lstm_model.add(LSTM(units=unidades, return_sequences=False))
 
-        if param_config['dropout'] == 1:
-            lstm_model.add(Dropout(param_config['dropout_rate'], seed=param_config['seed']))
-        if param_config['batchnorm'] == 1:
+        if dropout == 1:
+            lstm_model.add(Dropout(dropout_rate, seed=seed))
+        if batchnorm == 1:
             lstm_model.add(BatchNormalization(axis=-1, center=True, scale=True))
     else:
-        lstm_model.add(LSTM(units=param_config['units'], return_sequences=False))
+        lstm_model.add(LSTM(units=unidades, return_sequences=False))
 
-        if param_config['dropout'] == 1:
-            lstm_model.add(Dropout(param_config['dropout_rate'], seed=param_config['seed']))
-        if param_config['batchnorm'] == 1:
+        if dropout == 1:
+            lstm_model.add(Dropout(dropout_rate, seed=seed))
+        if batchnorm == 1:
             lstm_model.add(BatchNormalization(axis=-1, center=True, scale=True))
 
-    if param_config['act'] == 'sigmoid':
-        lstm_model.add(Dense(param_config['label_width'], activation=tf.keras.activations.sigmoid))
+    if act == 'sigmoid':
+        lstm_model.add(Dense(label_width, activation=tf.keras.activations.sigmoid))
     else:
-        lstm_model.add(Dense(param_config['label_width'], activation=tf.keras.activations.linear))
+        lstm_model.add(Dense(label_width, activation=tf.keras.activations.linear))
 
     return lstm_model
-
-def save_model(model, folder='models', model_name='LSTM_model'):
-    # Check if the folder exists, create it if not
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
-    # Check if a model with the same name already exists
-    model_path = os.path.join(folder, f"{model_name}.keras")
-    if os.path.exists(model_path):
-        # If it exists, generate a new unique name using a timestamp
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        model_path = os.path.join(folder, f"{model_name}_{timestamp}.keras")
-
-    # Save the model to the specified path
-    model.save(model_path)
-    print(f"Model saved to {model_path}")
-
-
-def lstm_train(x_train_lstm: np.ndarray, y_train_lstm: np.ndarray, x_val_lstm:np.ndarray, y_val_lstm: np.ndarray, 
-               param_config: Dict,pred_config: Dict) -> Sequential:
-    """
-    Trains an LSTM model.
-
-    Parameters:
-        x_train_lstm (np.ndarray): Training data.
-        y_train_lstm (np.ndarray): Training labels.
-        x_val_lstm (np.ndarray): Validation data.
-        y_val_lstm (np.ndarray): Validation labels.
-        param_config (Dict): Configuration parameters for the LSTM model.
-
-    Returns:
-        tf.keras.models.Sequential: Trained LSTM model.
-    """
-
-    lstm_model = lstm_create(param_config=param_config)
-    lstm_model.compile(loss='mae', optimizer=tf.optimizers.Adam(learning_rate=0.01), metrics=['mae'])
-    lstm_model.fit(x_train_lstm,  y_train_lstm, epochs=param_config['epochs'], batch_size=param_config['batch_size'], validation_data=(x_val_lstm, y_val_lstm))
-    save_model(lstm_model,model_name=pred_config['output']+"LSTM")
-    return lstm_model
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
