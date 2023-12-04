@@ -1,125 +1,9 @@
 import numpy as np
 import pandas as pd
-from typing import Union,Tuple,List,Optional
+from typing import Union,Tuple,List
 from sklearn.model_selection import train_test_split
-from data_load import RainfallDataset
-from dataclasses import dataclass
 
 
-@dataclass
-class DataSets:
-    x_train: Union[pd.DataFrame,np.ndarray] = None
-    y_train: Union[pd.DataFrame,np.ndarray] = None
-    x_val: Union[pd.DataFrame,np.ndarray] = None
-    y_val:Union[pd.DataFrame,np.ndarray] = None
-    x_test: Union[pd.DataFrame,np.ndarray] = None
-    y_test: Union[pd.DataFrame,np.ndarray] = None
-    def __str__(self):
-        info_str = ""
-        info_str += "x_train:\n"
-        info_str += self._get_info_str(self.x_train)
-        info_str += "\n\n"
-
-        info_str += "y_train:\n"
-        info_str += self._get_info_str(self.y_train)
-        info_str += "\n\n"
-
-        info_str += "x_val:\n"
-        info_str += self._get_info_str(self.x_val)
-        info_str += "\n\n"
-
-        info_str += "y_val:\n"
-        info_str += self._get_info_str(self.y_val)
-        info_str += "\n\n"
-
-        info_str += "x_test:\n"
-        info_str += self._get_info_str(self.x_test)
-        info_str += "\n\n"
-
-        info_str += "y_test:\n"
-        info_str += self._get_info_str(self.y_test)
-        info_str += "\n\n"
-
-        return info_str
-
-    def _get_info_str(self, element):
-        if element is None:
-            return "None"
-
-        info_str = ""
-        if isinstance(element, pd.DataFrame):
-            info_str += f"Type: pd.DataFrame\n"
-            info_str += f"Shape: {element.shape}\n"
-            info_str += f"Columns: {', '.join(element.columns)}\n"
-            info_str += f"Sample:\n{element.tail(2)}\n"
-        elif isinstance(element, np.ndarray):
-            info_str += f"Type: np.ndarray\n"
-            info_str += f"Shape: {element.shape}\n"
-            info_str += f"Sample:\n{element[:2]}\n"
-        return info_str
-
-
-def sliding_window(data_x:pd.DataFrame, data_y:pd.DataFrame, input_width:int=5, label_width:int=1, offset:int=1)->Tuple[np.ndarray,np.ndarray]:
-        # Verifica y convierte data_x a DataFrame si no lo es
-        if not isinstance(data_x, pd.DataFrame):
-            data_x = pd.DataFrame(data_x)
-
-        # Verifica y convierte data_y a DataFrame si no lo es
-        if not isinstance(data_y, pd.DataFrame):
-            data_y = pd.DataFrame(data_y)
-
-        x = []
-        y = []
-
-        for i in range(len(data_x)):
-            if i + input_width + offset + label_width > len(data_x):
-                pass
-            else:
-                _x = data_x.iloc[i:i + input_width, :].drop(columns=['date'])  # Excluye la columna 'date'
-                _y = data_y.iloc[i + input_width + offset:i + input_width + offset + label_width, :].drop(columns=['date'])  # Excluye la columna 'date'
-                
-                x.append(_x.values.astype(np.float32))
-                y.append(_y.values.astype(np.float32))
-        x, y = np.array(x), np.array(y)
-        if y.ndim > 2:
-            y = np.squeeze(y, axis=2)
-        return x, y
-
-def delay_offset_add(dataset:RainfallDataset,pred_config:dict) -> DataSets:
-    data = DataSets()
-    if pred_config['output'] == 'outflow':
-        data.x_train,data.y_train = sliding_window(data_x=dataset.train_data_norm,
-                                                                 data_y=dataset.train_outflow_norm,
-                                                                 input_width=pred_config['input_width'],
-                                                                 label_width=pred_config['label_width'],
-                                                                 offset=pred_config['offset'])
-        data.x_val,data.y_val = sliding_window(data_x=dataset.val_data_norm,
-                                                                 data_y=dataset.val_outflow_norm,
-                                                                 input_width=pred_config['input_width'],
-                                                                 label_width=pred_config['label_width'],
-                                                                 offset=pred_config['offset'])
-        data.x_test,data.y_test = sliding_window(data_x=dataset.test_data_norm,
-                                                                 data_y=dataset.test_outflow_norm,
-                                                                 input_width=pred_config['input_width'],
-                                                                 label_width=pred_config['label_width'],
-                                                                 offset=pred_config['offset'])
-    else:
-        data.x_train,data.y_train = sliding_window(data_x=dataset.train_data_norm,
-                                                                 data_y=dataset.train_inflow_norm,
-                                                                 input_width=pred_config['input_width'],
-                                                                 label_width=pred_config['label_width'],
-                                                                 offset=pred_config['offset'])
-        data.x_val,data.y_val = sliding_window(data_x=dataset.val_data_norm,
-                                                                 data_y=dataset.val_inflow_norm,
-                                                                 input_width=pred_config['input_width'],
-                                                                 label_width=pred_config['label_width'],
-                                                                 offset=pred_config['offset'])
-        data.x_test,data.y_test = sliding_window(data_x=dataset.test_data_norm,
-                                                                 data_y=dataset.test_inflow_norm,
-                                                                 input_width=pred_config['input_width'],
-                                                                 label_width=pred_config['label_width'],
-                                                                 offset=pred_config['offset'])
-    return data
 
 def split_data(data, test_ratio: float, val_ratio: float) -> Tuple:
     """
@@ -259,7 +143,59 @@ def procesado_de_tiempo(datos:pd.DataFrame,nombrecolumnatemporal:str)->pd.DataFr
     datos['año_sin'] = np.sin(ts_año)
     return datos
 
+def sliding_window(data:pd.DataFrame, labels:str, input_width:int, label_width:int=1, offset:int=1)->pd.DataFrame:
+    x = []
+    y = []
 
+    for i in range(len(data)):
+      if i+input_width + offset + label_width >= len(data) and i+input_width+ offset <= len(data):
+        _x = data[i:i+input_width]
+        _y = labels[i + input_width + offset :]
+      elif i+input_width+ offset >= len (data):
+        pass
+      else:
+        _x = data[i:i+input_width]
+        _y = labels[i + input_width + offset : i + input_width + offset +label_width]
+        x.append(_x)
+        y.append(_y)
+
+    x, y = np.array(x),np.array(y)
+    # quitar esto
+    if len(x.shape) == 2:
+        x = x[:,:,np.newaxis]
+        
+
+    if len(y.shape) == 2:
+        y = y[:,:,np.newaxis]
+    
+    return x, y
+
+def sliding_window2(data:pd.DataFrame, labels:str, input_width:int, label_width:int=1, offset:int=1)->pd.DataFrame:
+    x = []
+    y = []
+
+    for i in range(len(data)):
+      if i+input_width + offset + label_width >= len(data) and i+input_width+ offset <= len(data):
+        _x = data[i:i+input_width]
+        _y = labels[i + input_width + offset :]
+      elif i+input_width+ offset >= len (data):
+        pass
+      else:
+        _x = data[i:i+input_width]
+        _y = labels[i + input_width + offset : i + input_width + offset +label_width]
+        x.append(_x)
+        y.append(_y)
+
+    x, y = np.array(x),np.array(y)
+
+    if len(x.shape) == 2:
+        x = x[:,:,np.newaxis]
+        
+
+    if len(y.shape) == 2:
+        y = y[:,:,np.newaxis]
+    
+    return x, y
 
 
 def extraer_x_y(df:pd.DataFrame,col_salida:str,mezclar:bool=False)-> pd.DataFrame:
