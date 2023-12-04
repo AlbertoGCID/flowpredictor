@@ -1,9 +1,19 @@
-1. Crear el entorno de instalacion
-2. Crear la estructura del código
-3. Establecer la jerarquía de carpetas
-4. Copiar los archivos y generar los scripts
-5. Hacer la documentación 
-6. Generar la api, instalador...
+# TO-DO
+
+- preliminar creación de la clase para trabajar
+1. Integración de las diferentes fuentes
+    a. Lectura de la fuente a un csv (función clase add csv, lee todas las columnas como fuentes de diferentes zonas)
+    b. Integración a un dataframe
+        i. Asignación de los nombres de las columnas con la funcion asignación de nombres
+        ii. Asignación de la columna de salida
+        iii. verificación de la columna temporal
+2. Normalización del dataset y preparación de las ventanas temporales
+    a. Test de normalización
+    b. Test de ventana temporal
+3. Selección de función de ejecución (entrenamiento, predicción)
+    a. Entrenamiento, debe fijar split, renormalizar, partir dataframe, devolver valores de ns, R2 y f1 score
+    b. predicción por fecha, indicas fecha a predecir y te devuelve predicciones de hasta 5 días (tiene 5 modelos entrenados)
+4. Predicción a mano: pide los datos por teclado o por csv y devuelve la predicción de caudal para esos datos
 
 
 # 1. Configuración del Entorno Local
