@@ -32,6 +32,7 @@ def main_train(pred_config:dict()=None,param_config: dict()=None)-> None:
     x_test = DamRegisters.test_data
     print(f'\n\n{"*"*50} Training LSTM {"*"*50}\n\n')
     filas_del_medio = DamRegisters.data.iloc[450: 499]
+
     # Guardar el subconjunto en un archivo CSV
     filas_del_medio.to_csv('x_prueba.csv', index=False)
     #print(sets)
@@ -48,6 +49,7 @@ def main_pred(model:Sequential=None,x_data_path:str=None,temporal_column_name:st
     dataset = PredictionDataset()
     dataset.load_data(data_path=x_data_path, temporal_column=temporal_column_name)
     dataset.data = dataset.data.iloc[-input_width:]
+    print("€"*500)
     print(dataset.data.tail(10))
     if x_scaler is None:
         scaler_filename = 'scaler/x_train_scaler.pkl'
@@ -57,6 +59,37 @@ def main_pred(model:Sequential=None,x_data_path:str=None,temporal_column_name:st
     if y_scaler is None:
         scaler_filename = 'scaler/inflow_train_scaler.pkl'
         y_scaler = joblib.load(scaler_filename)
+    y_pred_denorm=y_scaler.inverse_transform(y_pred)
+    print(f"\n\nInflow prediction for indicated data is {y_pred_denorm[0][0]:.3f} m3/s\n\n")
+
+
+def main_pred_folder(pred_folder_config:dict()=None)->None:
+    dataset = PredictionDataset()
+    dataset.load_folder(data_path=pred_folder_config['folder_path'],temporal_column='date')
+    dataset.set_inflow(inflow_column=pred_folder_config['inflow_name'])
+    dataset.set_outflow(outflow_column=pred_folder_config['outflow_name'])
+    print(f'\n\n{"*"*50} Predicting {"*"*50}\n\n')
+    print(dataset.data.tail(10))
+    if pred_folder_config['x_scaler'] is None:
+        scaler_filename = 'scaler/x_train_scaler.pkl'
+        x_scaler = joblib.load(scaler_filename)
+    else:
+        x_scaler = pred_folder_config['x_scaler']
+    x = x_scaler.transform(dataset.data.drop(columns=['date']))
+    model = pred_folder_config['model'] # añadir aquí la parte de si no se encuentra que lo descargue
+    y_pred = model.predict(np.expand_dims(x[-pred_folder_config['input_width']:, :], axis=0))
+    if pred_folder_config['output'] == 'inflow':
+        if pred_folder_config['inflow_scaler'] is None:
+            scaler_filename = 'scaler/inflow_train_scaler.pkl'
+            y_scaler = joblib.load(scaler_filename)
+        else:
+            y_scaler = pred_folder_config['inflow_scaler']
+    else:
+        if pred_folder_config['outflow_scaler'] is None:
+            scaler_filename = 'scaler/outflow_train_scaler.pkl'
+            y_scaler = joblib.load(scaler_filename)
+        else:
+            y_scaler = pred_folder_config['outflow_scaler']
     y_pred_denorm=y_scaler.inverse_transform(y_pred)
     print(f"\n\nInflow prediction for indicated data is {y_pred_denorm[0][0]:.3f} m3/s\n\n")
 
@@ -77,23 +110,40 @@ if __name__ == '__main__':
                 'batch_size': 32,
                 'epochs' :500}
     
-    pred_config ={'folder_path': 'datasets/csv_folder/',
-                'inflow_name':'Inflow',
-                'outflow_name':'Outflow',
-                'output':'outflow',
+    pred_config ={'folder_path': 'datasets/predict_folder/',
+                'inflow_name':'CaudalEntrante_m3_s',
+                'outflow_name':'CaudalAliviado_m3_s',
+                'output':'inflow',
                 'input_width':7,
                 'label_width':1,
                 'offset':0}
-
-
+    
     main_train(pred_config=pred_config,param_config= param_config)
 
     input_width = 7
-    model_path = "models/outflowLSTM.keras"
+    model_path = f"models/{pred_config['output']}LSTM.keras"
     model = load_keras_model(model_path)
-    x_data_path = "datasets/predict_folder/x_prueba.csv"
+    x_data_path = "datasets/predict_folder/" # x_prueba.csv
     temporal_column_name='date'
     x_scaler = load_scaler(scaler_path="scaler/x_train_scaler.pkl")
     inflow_scaler = load_scaler(scaler_path="scaler/inflow_train_scaler.pkl")
     outflow_scaler = load_scaler(scaler_path="scaler/outflow_train_scaler.pkl")
-    main_pred(model=model,x_data_path=x_data_path,temporal_column_name=temporal_column_name,x_scaler=x_scaler,y_scaler=outflow_scaler,input_width=input_width)
+    #main_pred(model=model,x_data_path=x_data_path,temporal_column_name=temporal_column_name,x_scaler=x_scaler,y_scaler=outflow_scaler,input_width=input_width)
+
+    pred_folder_config = {'folder_path': 'datasets/predict_folder/',
+                'model' : model,
+                'inflow_name':'CaudalEntrante_m3_s',
+                'outflow_name':'CaudalAliviado_m3_s',
+                'output':'inflow',
+                'x_scaler' : x_scaler,
+                'inflow_scaler' : inflow_scaler,
+                'outflow_scaler' : outflow_scaler,
+                'input_width':7,
+                'label_width':1,
+                'offset':0}
+
+    main_pred_folder(pred_folder_config=pred_folder_config)
+
+
+
+### TERMINADO EL DATASET, HABRÍA QUE ELIMINAR EL CAUDAL ALIVIADERO Y TAL, CREAR UNO CON LAS SALIDAS ÚNICAMENTE PARA QUITARLAS DEL MODELO DE ENTRADA Y ASÍ SIMULAR EL CORRECTO

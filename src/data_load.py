@@ -52,7 +52,7 @@ class RainfallDataset:
         else:
             self.data = pd.merge(self.data, new_data, how='outer', on='date')
         self.clean_data()
-        self.data = self.replace_negatives_with_zero(df=self.data,not_value=['date'])
+        self.data = self.replace_negatives_with_zero(df=self.data)
         # Asegúrate de que la columna 'date' sea la primera
         self.data = self.data.set_index('date').reset_index()
         self.train_val_test()
@@ -69,7 +69,7 @@ class RainfallDataset:
         else:
             self.data = pd.merge(self.data, new_data, how='outer', on='date')
         self.clean_data()
-        self.data = self.replace_negatives_with_zero(df=self.data,not_value=['date'])
+        self.data = self.replace_negatives_with_zero(df=self.data)
         self.data = self.data.set_index('date').reset_index()
         self.train_val_test()
 
@@ -93,7 +93,7 @@ class RainfallDataset:
     def set_inflow(self, inflow_column:str)->None:
         if inflow_column in self.data.columns:
             self.inflow = self.data[['date',inflow_column]]
-            self.data.drop(columns=[inflow_column], inplace=True)
+            #self.data.drop(columns=[inflow_column], inplace=True)
             self.train_val_test()
 
         else:
@@ -102,24 +102,33 @@ class RainfallDataset:
     def set_outflow(self, outflow_column:str)->None:
         if outflow_column in self.data.columns:
             self.outflow = self.data[['date',outflow_column]]
-            self.data.drop(columns=[outflow_column], inplace=True)
+            #self.data.drop(columns=[outflow_column], inplace=True)
             self.train_val_test()
             self.normalization()
         else:
             print(f'{outflow_column} is not a valid column name')
     
-    def replace_negatives_with_zero(self, df, not_value)->None:
+    def replace_negatives_with_zero(self, df) -> None:
         # Crear una copia del DataFrame para evitar modificar el original
         df_copy = df.copy()
 
-        # Obtener todas las columnas excepto las indicadas en not_value
-        columns_to_check = [col for col in df_copy.columns if col not in not_value]
+        # Paso 1: Eliminar columnas no numéricas
+        numeric_columns = df_copy.select_dtypes(include=['float64', 'int64', 'object']).columns
+        numeric_columns = [col for col in numeric_columns if pd.to_numeric(df_copy[col], errors='coerce').notnull().all()]
+
+        # Paso 2: Eliminar columnas no datetime
+        date_columns = df_copy.select_dtypes(include=['datetime64']).columns
+
+        # Mantener solo las columnas que son numéricas o datetime
+        selected_columns = list(set(numeric_columns).union(set(date_columns)))
+        df_copy = df_copy[selected_columns]
 
         # Sustituir los valores negativos por cero en las columnas seleccionadas
-        for col in columns_to_check:
-            df_copy[col] = df_copy[col].apply(lambda x: 0 if x < 0 else x)
+        for col in df_copy.columns:
+            df_copy[col] = df_copy[col].apply(lambda x: 0 if (pd.to_numeric(x, errors='coerce') < 0) else x)
 
-        return df_copy
+        return df_copy.sort_index(axis=1)
+
     
     def train_val_test(self,val_year:int=None)->None:
         unique_years = self.data['date'].dt.year.unique()
@@ -143,24 +152,24 @@ class RainfallDataset:
             self.test_outflow = self.inflow[self.inflow['date'].dt.year.isin(self.test_year)]
         self.normalization()
 
-    def save_scaler(self,folder='scaler', scaler_name='train_scaler',scaler=None):
-
-        # Check if the folder exists, create it if not
+    def save_scaler(self, folder='scaler', scaler_name='train_scaler', scaler=None):
+        # Verificar si la carpeta existe; créala si no existe
         if not os.path.exists(folder):
             os.makedirs(folder)
 
-        # Check if a model with the same name already exists
+        # Obtener la ruta completa del archivo scaler
         scaler_path = os.path.join(folder, f"{scaler_name}.pkl")
-        if os.path.exists(scaler_path):
-            # If it exists, generate a new unique name using a timestamp
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            scaler_path = os.path.join(folder, f"{scaler_name}_{timestamp}.pkl")
 
-        # Save the model to the specified path
+        # Si el archivo ya existe, reemplazarlo
+        if os.path.exists(scaler_path):
+            os.remove(scaler_path)
+
+        # Guardar el modelo en la ruta especificada
         if scaler is None:
             joblib.dump(self.data_scaler, scaler_path)
         else:
             joblib.dump(scaler, scaler_path)
+
         print(f"Model saved to {scaler_path}")
 
     def normalization(self)->None:
@@ -291,7 +300,7 @@ class PredictionDataset:
         else:
             self.data = pd.merge(self.data, new_data, how='outer', on='date')
         self.clean_data()
-        self.data = self.replace_negatives_with_zero(df=self.data,not_value=['date'])
+        self.data = self.replace_negatives_with_zero(df=self.data)
         # Asegúrate de que la columna 'date' sea la primera
         self.data = self.data.set_index('date').reset_index()
 
@@ -307,7 +316,7 @@ class PredictionDataset:
         else:
             self.data = pd.merge(self.data, new_data, how='outer', on='date')
         self.clean_data()
-        self.data = self.replace_negatives_with_zero(df=self.data,not_value=['date'])
+        self.data = self.replace_negatives_with_zero(df=self.data)
         self.data = self.data.set_index('date').reset_index()
 
     def load_data(self, data_path:str, temporal_column:str)->None:
@@ -330,29 +339,38 @@ class PredictionDataset:
     def set_inflow(self, inflow_column:str)->None:
         if inflow_column in self.data.columns:
             self.inflow = self.data[['date',inflow_column]]
-            self.data.drop(columns=[inflow_column], inplace=True)
+            #self.data.drop(columns=[inflow_column], inplace=True) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! quito esto para integrar la entrada 
         else:
             print(f'{inflow_column} is not a valid column name')
 
     def set_outflow(self, outflow_column:str)->None:
         if outflow_column in self.data.columns:
             self.outflow = self.data[['date',outflow_column]]
-            self.data.drop(columns=[outflow_column], inplace=True)
+            #self.data.drop(columns=[outflow_column], inplace=True) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! quito esto para integrar la entrada 
         else:
             print(f'{outflow_column} is not a valid column name')
     
-    def replace_negatives_with_zero(self, df, not_value)->None:
+    def replace_negatives_with_zero(self, df) -> None:
         # Crear una copia del DataFrame para evitar modificar el original
         df_copy = df.copy()
 
-        # Obtener todas las columnas excepto las indicadas en not_value
-        columns_to_check = [col for col in df_copy.columns if col not in not_value]
+        # Paso 1: Eliminar columnas no numéricas
+        numeric_columns = df_copy.select_dtypes(include=['float64', 'int64', 'object']).columns
+        numeric_columns = [col for col in numeric_columns if pd.to_numeric(df_copy[col], errors='coerce').notnull().all()]
+
+        # Paso 2: Eliminar columnas no datetime
+        date_columns = df_copy.select_dtypes(include=['datetime64']).columns
+
+        # Mantener solo las columnas que son numéricas o datetime
+        selected_columns = list(set(numeric_columns).union(set(date_columns)))
+        df_copy = df_copy[selected_columns]
 
         # Sustituir los valores negativos por cero en las columnas seleccionadas
-        for col in columns_to_check:
-            df_copy[col] = df_copy[col].apply(lambda x: 0 if x < 0 else x)
+        for col in df_copy.columns:
+            df_copy[col] = df_copy[col].apply(lambda x: 0 if (pd.to_numeric(x, errors='coerce') < 0) else x)
 
-        return df_copy
+        return df_copy.sort_index(axis=1)
+
 
 
     def __str__(self)->None:
