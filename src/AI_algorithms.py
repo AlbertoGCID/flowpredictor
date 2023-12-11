@@ -80,17 +80,14 @@ def lstm_create(param_config: dict) -> Sequential:
 
     return lstm_model
 
+
 def save_model(model, folder='models', model_name='LSTM_model'):
     # Check if the folder exists, create it if not
     if not os.path.exists(folder):
         os.makedirs(folder)
 
-    # Check if a model with the same name already exists
+    # Path to save the model
     model_path = os.path.join(folder, f"{model_name}.keras")
-    if os.path.exists(model_path):
-        # If it exists, generate a new unique name using a timestamp
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        model_path = os.path.join(folder, f"{model_name}_{timestamp}.keras")
 
     # Save the model to the specified path
     model.save(model_path)

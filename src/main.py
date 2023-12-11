@@ -1,15 +1,11 @@
-import os
 from data_load import RainfallDataset,PredictionDataset,load_keras_model,load_scaler
-from typing import Union
 from AI_algorithms import lstm_train
 from AI_results import lstm_evaluate
 from split_delay_time import delay_offset_add
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from sklearn.preprocessing import MinMaxScaler
-import pandas as pd
 import numpy as np
 import joblib
+from datetime import datetime, timedelta
 
 tf.get_logger().setLevel('ERROR')
 
@@ -20,7 +16,6 @@ def main_train(pred_config:dict()=None,param_config: dict()=None)-> None:
     DamRegisters.load_folder(data_path=pred_config['folder_path'],temporal_column='date')
     DamRegisters.set_inflow(inflow_column=pred_config['inflow_name'])
     DamRegisters.set_outflow(outflow_column=pred_config['outflow_name'])
-    #print(DamRegisters)
     if pred_config['output'] == "outflow":
         sets = delay_offset_add(dataset=DamRegisters,pred_config=pred_config)
         scaler = DamRegisters.outflow_scaler
@@ -31,11 +26,6 @@ def main_train(pred_config:dict()=None,param_config: dict()=None)-> None:
         y_test = DamRegisters.test_inflow
     x_test = DamRegisters.test_data
     print(f'\n\n{"*"*50} Training LSTM {"*"*50}\n\n')
-    filas_del_medio = DamRegisters.data.iloc[450: 499]
-
-    # Guardar el subconjunto en un archivo CSV
-    filas_del_medio.to_csv('x_prueba.csv', index=False)
-    #print(sets)
     lstm_model = lstm_train(x_train_lstm = sets.x_train, y_train_lstm= sets.y_train, 
                             x_val_lstm= sets.x_val, y_val_lstm= sets.y_val, 
                             param_config= param_config,pred_config=pred_config) 
@@ -44,32 +34,14 @@ def main_train(pred_config:dict()=None,param_config: dict()=None)-> None:
 def preprocess(x_data):
     x = x_data
 
-def main_pred(model:Sequential=None,x_data_path:str=None,temporal_column_name:str=None,
-              x_scaler:MinMaxScaler= None,y_scaler:MinMaxScaler= None,input_width:int=7)->None:
-    dataset = PredictionDataset()
-    dataset.load_data(data_path=x_data_path, temporal_column=temporal_column_name)
-    dataset.data = dataset.data.iloc[-input_width:]
-    print("€"*500)
-    print(dataset.data.tail(10))
-    if x_scaler is None:
-        scaler_filename = 'scaler/x_train_scaler.pkl'
-        x_scaler = joblib.load(scaler_filename)
-    x = x_scaler.transform(dataset.data.drop(columns=['date']))
-    y_pred = model.predict(np.expand_dims(x, axis=0))
-    if y_scaler is None:
-        scaler_filename = 'scaler/inflow_train_scaler.pkl'
-        y_scaler = joblib.load(scaler_filename)
-    y_pred_denorm=y_scaler.inverse_transform(y_pred)
-    print(f"\n\nInflow prediction for indicated data is {y_pred_denorm[0][0]:.3f} m3/s\n\n")
-
-
 def main_pred_folder(pred_folder_config:dict()=None)->None:
     dataset = PredictionDataset()
     dataset.load_folder(data_path=pred_folder_config['folder_path'],temporal_column='date')
     dataset.set_inflow(inflow_column=pred_folder_config['inflow_name'])
     dataset.set_outflow(outflow_column=pred_folder_config['outflow_name'])
-    print(f'\n\n{"*"*50} Predicting {"*"*50}\n\n')
-    print(dataset.data.tail(10))
+    print(f'\n\n{"*"*50} Predicting for this values {"*"*50}\n\n')
+    print(f'Lengh prediction dataset is {len(dataset.data)} days')
+    print(dataset.data.tail(int(pred_folder_config['input_width'])))
     if pred_folder_config['x_scaler'] is None:
         scaler_filename = 'scaler/x_train_scaler.pkl'
         x_scaler = joblib.load(scaler_filename)
@@ -91,13 +63,30 @@ def main_pred_folder(pred_folder_config:dict()=None)->None:
         else:
             y_scaler = pred_folder_config['outflow_scaler']
     y_pred_denorm=y_scaler.inverse_transform(y_pred)
-    print(f"\n\nInflow prediction for indicated data is {y_pred_denorm[0][0]:.3f} m3/s\n\n")
+    last_date = dataset.data['date'].max()
+    days_to_add = pred_folder_config['offset'] + 1
+
+
+    # Calcular la nueva fecha sumando los días
+    new_date_dt = last_date + timedelta(days=days_to_add)
+
+    # Formatear la nueva fecha en el formato deseado (d-m-y)
+    new_date_formatted = new_date_dt.strftime('%d-%m-%Y')
+
+    print(f"\n\nInflow prediction for {new_date_formatted} is {y_pred_denorm[0][0]:.3f} m3/s\n\n")
 
 
 
 if __name__ == '__main__':
 
- 
+    train_data = "datasets/train_folder/" 
+    predict_data = "datasets/predict_folder/" 
+    input_width = 7
+    offset = 3
+    inflow_name = 'input'
+    outflow_name = 'output'
+    target = 'output'
+
     param_config = {
                 'num_layers': 1,
                 'units': 24,
@@ -108,39 +97,35 @@ if __name__ == '__main__':
                 'label_width': 1,
                 'act': 'linear',
                 'batch_size': 32,
-                'epochs' :500}
+                'epochs' :10}
     
-    pred_config ={'folder_path': 'datasets/predict_folder/',
-                'inflow_name':'CaudalEntrante_m3_s',
-                'outflow_name':'CaudalAliviado_m3_s',
-                'output':'inflow',
-                'input_width':7,
+    pred_config ={'folder_path': train_data,
+                'inflow_name':inflow_name,
+                'outflow_name':outflow_name,
+                'output':target,
+                'input_width':input_width,
                 'label_width':1,
-                'offset':0}
+                'offset':offset}
     
     main_train(pred_config=pred_config,param_config= param_config)
 
-    input_width = 7
+    
     model_path = f"models/{pred_config['output']}LSTM.keras"
     model = load_keras_model(model_path)
-    x_data_path = "datasets/predict_folder/" # x_prueba.csv
-    temporal_column_name='date'
     x_scaler = load_scaler(scaler_path="scaler/x_train_scaler.pkl")
     inflow_scaler = load_scaler(scaler_path="scaler/inflow_train_scaler.pkl")
     outflow_scaler = load_scaler(scaler_path="scaler/outflow_train_scaler.pkl")
-    #main_pred(model=model,x_data_path=x_data_path,temporal_column_name=temporal_column_name,x_scaler=x_scaler,y_scaler=outflow_scaler,input_width=input_width)
-
-    pred_folder_config = {'folder_path': 'datasets/predict_folder/',
+    pred_folder_config = {'folder_path': predict_data,
                 'model' : model,
-                'inflow_name':'CaudalEntrante_m3_s',
-                'outflow_name':'CaudalAliviado_m3_s',
-                'output':'inflow',
+                'inflow_name': inflow_name,
+                'outflow_name':outflow_name,
+                'output':target,
                 'x_scaler' : x_scaler,
                 'inflow_scaler' : inflow_scaler,
                 'outflow_scaler' : outflow_scaler,
-                'input_width':7,
+                'input_width':input_width,
                 'label_width':1,
-                'offset':0}
+                'offset':offset}
 
     main_pred_folder(pred_folder_config=pred_folder_config)
 

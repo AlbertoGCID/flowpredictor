@@ -50,7 +50,7 @@ class RainfallDataset:
         if self.data is None:
             self.data = new_data
         else:
-            self.data = pd.merge(self.data, new_data, how='outer', on='date')
+            self.data = pd.merge(self.data, new_data, how='inner', on='date')
         self.clean_data()
         self.data = self.replace_negatives_with_zero(df=self.data)
         # Asegúrate de que la columna 'date' sea la primera
@@ -67,7 +67,7 @@ class RainfallDataset:
         if self.data is None:
             self.data = new_data
         else:
-            self.data = pd.merge(self.data, new_data, how='outer', on='date')
+            self.data = pd.merge(self.data, new_data, how='inner', on='date')
         self.clean_data()
         self.data = self.replace_negatives_with_zero(df=self.data)
         self.data = self.data.set_index('date').reset_index()

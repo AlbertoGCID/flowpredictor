@@ -30,8 +30,8 @@ def lstm_evaluate(lstm_model:Sequential,x_test_norm:np.ndarray,x_test:Union[pd.D
     print(f'MSE test: {mse_LSTM}')
     print(f'R2 test: {r_cuadrado_LSTM}')
     print(f'std test: {std_LSTM}\n')
-    plot_ = Graficas(ultimo_envio=time.time())
-    plot_.plot2feats(feat1=y_test,feat2=y_pred_denorm, pred_config=pred_config)
+    #plot_ = Graficas(ultimo_envio=time.time())
+    #plot_.plot2feats(feat1=y_test,feat2=y_pred_denorm, pred_config=pred_config)
 
 def rank_five(numpyarray: np.ndarray) -> np.ndarray:
     """
