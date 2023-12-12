@@ -54,3 +54,6 @@ python main.py --train_folder datasets/train_folder/ --input_width 7 --offset 3 
 ```python
 python main.py --predict_folder datasets/predict_folder/ --input_width 7 --offset 3 --inflow_name input --outflow_name output --target input --predict_only --model_path models/inflowLSTM.keras --x_scaler_path scaler/x_train_scaler.pkl --inflow_scaler_path scaler/inflow_train_scaler.pkl --outflow_scaler_path scaler/outflow_train_scaler.pkl
 ```
+
+## License
+This project is licensed under the GNU General Public License, version 3 - see the LICENSE file for details.
