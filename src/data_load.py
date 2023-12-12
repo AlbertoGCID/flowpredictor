@@ -302,6 +302,12 @@ class RainfallDataset:
 
 
     def __str__(self)->None:
+        """
+        Return a formatted string containing information about the dataset, inflow, and outflow.
+
+        Returns:
+            str: Formatted string with dataset, inflow, and outflow information.
+        """
         data_table = PrettyTable()
         inflow_table = PrettyTable()
         outflow_table = PrettyTable()
@@ -343,6 +349,16 @@ class PredictionDataset(RainfallDataset):
         super().__init__(data_path)
 
     def load_excel(self, data_path:str, temporal_column:str=None)->None:
+        """
+        Load data from an Excel file into the dataset.
+
+        Args:
+            data_path (str): Path to the Excel file.
+            temporal_column (str, optional): Name of the temporal column. Default is None.
+
+        Returns:
+            None
+        """
         new_data = pd.read_excel(data_path)
         new_data = new_data.dropna(axis=1, how='all')
         if temporal_column is None:
@@ -358,6 +374,16 @@ class PredictionDataset(RainfallDataset):
         self.data = self.data.set_index('date').reset_index()
 
     def load_csv(self, data_path:str, temporal_column:str=None)->None:
+        """
+        Load data from an csv file into the dataset.
+
+        Args:
+            data_path (str): Path to the csv file.
+            temporal_column (str, optional): Name of the temporal column. Default is None.
+
+        Returns:
+            None
+        """
         new_data = pd.read_csv(data_path)
         if temporal_column is None:
             temporal_column = 'date'
@@ -372,12 +398,30 @@ class PredictionDataset(RainfallDataset):
         self.data = self.data.set_index('date').reset_index()
 
     def set_inflow(self, inflow_column:str)->None:
+        """
+        Set the inflow data for the dataset based on the specified column.
+
+        Args:
+            inflow_column (str): Name of the column containing inflow data.
+
+        Returns:
+            None
+        """
         if inflow_column in self.data.columns:
             self.inflow = self.data[['date',inflow_column]]
         else:
             print(f'{inflow_column} is not a valid column name')
 
     def set_outflow(self, outflow_column:str)->None:
+        """
+        Set the outflow data for the dataset based on the specified column.
+
+        Args:
+            outflow_column (str): Name of the column containing outflow data.
+
+        Returns:
+            None
+        """
         if outflow_column in self.data.columns:
             self.outflow = self.data[['date',outflow_column]]
         else:

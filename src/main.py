@@ -5,7 +5,7 @@ from split_delay_time import delay_offset_add
 import tensorflow as tf
 import numpy as np
 import joblib
-from datetime import datetime, timedelta
+from datetime import timedelta
 import argparse
 
 tf.get_logger().setLevel('ERROR')
@@ -118,6 +118,29 @@ def pred_folder(pred_folder_config:dict()=None)->None:
 
 
 def main():
+    """
+    Main function for training and prediction script.
+
+    Parses command-line arguments, including paths to datasets, model, and scalers.
+    Executes training or prediction based on the provided arguments.
+
+    Args:
+        --train_folder (str): Path to the training dataset.
+        --predict_folder (str): Path to the prediction dataset.
+        --input_width (int): Width of the input window.
+        --offset (int): Offset between input and output.
+        --inflow_name (str): Name of the input column for inflow.
+        --outflow_name (str): Name of the output column for outflow.
+        --target (str): Name of the target column.
+        --predict_only (bool): Run prediction only.
+        --model_path (str): Path to the trained model (optional for prediction).
+        --x_scaler_path (str): Path to the x_scaler (optional for prediction).
+        --inflow_scaler_path (str): Path to the inflow_scaler (optional for prediction).
+        --outflow_scaler_path (str): Path to the outflow_scaler (optional for prediction).
+
+    Returns:
+        None
+    """
     parser = argparse.ArgumentParser(description='Training and Prediction Script')
     parser.add_argument('--train_folder', default='datasets/train_folder/', help='Path to the training dataset')
     parser.add_argument('--predict_folder', default='datasets/predict_folder/', help='Path to the prediction dataset')
