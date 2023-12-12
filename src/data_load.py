@@ -37,6 +37,18 @@ class RainfallDataset:
         self.model = None
 
     def load_excel(self, data_path:str, temporal_column:str=None)->None:
+        """
+        Load data from an Excel file and add it to the existing DataFrame.
+
+        Parameters:
+        - data_path (str): Path to the Excel file.
+        - temporal_column (str, optional): Name of the temporal column. Defaults to 'date'.
+
+        This method reads data from an Excel file, drops columns with all null values, renames the temporal column,
+        converts the 'date' column to datetime format, merges dataframes if data already exists, cleans the data by
+        removing null values, replaces negative values with zero, sets 'date' as index, and splits the dataset into
+        train, validation, and test sets.
+        """
         new_data = pd.read_excel(data_path)
         new_data = new_data.dropna(axis=1, how='all')
         if temporal_column is None:
@@ -53,6 +65,18 @@ class RainfallDataset:
         self.train_val_test()
 
     def load_csv(self, data_path:str, temporal_column:str=None)->None:
+        """
+        Load data from a csv file and add it to the existing DataFrame.
+
+        Parameters:
+        - data_path (str): Path to the csv file.
+        - temporal_column (str, optional): Name of the temporal column. Defaults to 'date'.
+
+        This method reads data from an csv file, drops columns with all null values, renames the temporal column,
+        converts the 'date' column to datetime format, merges dataframes if data already exists, cleans the data by
+        removing null values, replaces negative values with zero, sets 'date' as index, and splits the dataset into
+        train, validation, and test sets.
+        """
         new_data = pd.read_csv(data_path)
         if temporal_column is None:
             temporal_column = 'date'
@@ -68,6 +92,17 @@ class RainfallDataset:
         self.train_val_test()
 
     def load_data(self, data_path:str, temporal_column:str)->None:
+        """
+        Load data from a specified file based on its extension and add it to the existing DataFrame.
+
+        Parameters:
+        - data_path (str): Path to the data file.
+        - temporal_column (str): Name of the temporal column.
+
+        This method delegates the loading of data to specific methods based on the file extension.
+        If the file is a CSV, it calls 'load_csv'; if it is an Excel file, it calls 'load_excel'.
+        Unsupported file extensions result in a printed warning.
+        """
         if data_path.endswith('.csv'):
             self.load_csv(data_path=data_path, temporal_column=temporal_column)
         elif data_path.endswith('.xlsx') or data_path.endswith('.xls'):
@@ -77,13 +112,37 @@ class RainfallDataset:
 
 
     def load_folder(self, data_path:str,temporal_column:str)->None:
+        """
+        Load data from multiple files within a specified folder and add it to the existing DataFrame.
+
+        Parameters:
+        - data_path (str): Path to the folder containing data files.
+        - temporal_column (str): Name of the temporal column.
+
+        This method iterates over all files in the specified folder, calling 'load_data' for each file.
+        """
         for filename in os.listdir(data_path):
             self.load_data(data_path = data_path+filename,temporal_column=temporal_column)
     
     def clean_data(self)->None:
+        """
+        Remove rows with null values from the dataset.
+
+        This method drops rows containing any null or NaN values in any column.
+        """
         self.data = self.data.dropna()
 
     def set_inflow(self, inflow_column:str)->None:
+        """
+        Set the inflow column for the dataset and update the train, validation, and test sets.
+
+        Parameters:
+        - inflow_column (str): Name of the inflow column.
+
+        If the specified inflow column is valid, it sets the inflow attribute, and then updates the
+        train, validation, and test sets using 'train_val_test'.
+        Otherwise, it prints a warning.
+        """
         if inflow_column in self.data.columns:
             self.inflow = self.data[['date',inflow_column]]
             self.train_val_test()
@@ -92,6 +151,18 @@ class RainfallDataset:
             print(f'{inflow_column} is not a valid column name')
 
     def set_outflow(self, outflow_column:str)->None:
+        """
+        Set the outflow column for the dataset, update the train, validation, and test sets,
+        and normalize the data.
+
+        Parameters:
+        - outflow_column (str): Name of the outflow column.
+
+        If the specified outflow column is valid, it sets the outflow attribute, updates the
+        train, validation, and test sets using 'train_val_test', and normalizes the data using
+        'normalization'.
+        Otherwise, it prints a warning.
+        """
         if outflow_column in self.data.columns:
             self.outflow = self.data[['date',outflow_column]]
             self.train_val_test()
@@ -100,6 +171,18 @@ class RainfallDataset:
             print(f'{outflow_column} is not a valid column name')
     
     def replace_negatives_with_zero(self, df) -> None:
+        """
+        Replace negative values with zero in the specified DataFrame.
+
+        Parameters:
+        - df (pd.DataFrame): The DataFrame containing numerical and datetime columns.
+
+        Returns:
+        pd.DataFrame: A new DataFrame with negative values replaced by zero.
+
+        This method creates a copy of the input DataFrame and replaces negative values with zero
+        in the selected numerical and datetime columns.
+        """
         df_copy = df.copy()
         numeric_columns = df_copy.select_dtypes(include=['float64', 'int64', 'object']).columns
         numeric_columns = [col for col in numeric_columns if pd.to_numeric(df_copy[col], errors='coerce').notnull().all()]
@@ -113,6 +196,18 @@ class RainfallDataset:
 
     
     def train_val_test(self,val_year:int=None)->None:
+        """
+        Split the dataset into training, validation, and test sets based on the specified validation year.
+
+        Parameters:
+        - val_year (int, optional): The year to use for validation. If None, the second-to-last year is used for validation.
+
+        Returns:
+        None
+
+        This method divides the dataset into training, validation, and test sets based on the specified or default validation year.
+        It also normalizes the datasets.
+        """
         unique_years = self.data['date'].dt.year.unique()
         if val_year is None:
             self.val_year = [unique_years[-2]]
@@ -135,6 +230,19 @@ class RainfallDataset:
         self.normalization()
 
     def save_scaler(self, folder='scaler', scaler_name='train_scaler', scaler=None):
+        """
+        Save the scaler to a file.
+
+        Parameters:
+        - folder (str, optional): The folder path where the scaler file will be saved.
+        - scaler_name (str, optional): The name of the scaler file.
+        - scaler (Any, optional): The scaler object to save. If None, the dataset scaler is used.
+
+        Returns:
+        None
+
+        This method saves the scaler to a file with the specified name and in the specified folder.
+        """
         if not os.path.exists(folder):
             os.makedirs(folder)
         scaler_path = os.path.join(folder, f"{scaler_name}.pkl")
@@ -146,6 +254,14 @@ class RainfallDataset:
             joblib.dump(scaler, scaler_path)
 
     def normalization(self)->None:
+        """
+        Normalize the training, validation, and test datasets and save the scalers.
+
+        Returns:
+        None
+
+        This method normalizes the datasets and saves the scalers for the features, inflow, and outflow.
+        """
         train_data = self.train_data.drop(columns=['date'])
         val_data = self.val_data.drop(columns=['date'])
         test_data = self.test_data.drop(columns=['date'])
@@ -184,19 +300,6 @@ class RainfallDataset:
 
   
 
-        
-
-    
-    def delay_add(self,ds_new:pd.DataFrame,ds_source:pd.DataFrame,column_name:str,delay:int=0)-> pd.DataFrame:
-        if delay <= 0:
-            raise ValueError('retardo must be a positive integer')
-        for i in range(1,delay):
-            try:
-                ds_new[column_name+"menos"+str(i)] = ds_source[column_name].shift(i)
-            except Exception as e:
-                print(f"Error while shifting column {column_name}: {e}")
-        ds_new = ds_new.fillna(0)
-        return ds_new
 
     def __str__(self)->None:
         data_table = PrettyTable()

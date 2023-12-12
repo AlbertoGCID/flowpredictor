@@ -12,6 +12,22 @@ tf.get_logger().setLevel('ERROR')
 
 
 def train(pred_config:dict()=None)-> None:
+    """
+    Train an LSTM model using the specified prediction configuration.
+
+    Parameters:
+    - pred_config (dict): A dictionary containing configuration parameters for the prediction.
+        - 'folder_path' (str): Path to the folder containing training data.
+        - 'inflow_name' (str): Name of the inflow column in the dataset.
+        - 'outflow_name' (str): Name of the outflow column in the dataset.
+        - 'output' (str): Target variable for prediction ('inflow' or 'outflow').
+        - 'input_width' (int): Number of context days.
+        - 'label_width' (int): Number of days to be predicted.
+        - 'offset' (int): Number of gap between last input day and prediction.
+
+    Returns:
+    None
+    """
     param_config = {
             'num_layers': 1,
             'units': 24,
@@ -44,6 +60,26 @@ def train(pred_config:dict()=None)-> None:
     lstm_evaluate(lstm_model=lstm_model,x_test_norm=sets.x_test,x_test=x_test,y_test=y_test,scaler=scaler,pred_config=pred_config)
 
 def pred_folder(pred_folder_config:dict()=None)->None:
+    """
+    Perform predictions using a trained model on a specified folder of input data.
+
+    Parameters:
+    - pred_folder_config (dict): A dictionary containing configuration parameters for the prediction.
+        - 'folder_path' (str): Path to the folder containing prediction data.
+        - 'inflow_name' (str): Name of the inflow column in the dataset.
+        - 'outflow_name' (str): Name of the outflow column in the dataset.
+        - 'output' (str): Target variable for prediction ('inflow' or 'outflow').
+        - 'model' (Keras model): Trained model for prediction.
+        - 'x_scaler' (Scaler object): Scaler for input data normalization.
+        - 'inflow_scaler' (Scaler object): Scaler for inflow column normalization.
+        - 'outflow_scaler' (Scaler object): Scaler for outflow column normalization.
+        - 'input_width' (int): Number of context days.
+        - 'label_width' (int): Number of days to be predicted.
+        - 'offset' (int): Number of gap between last input day and prediction.
+
+    Returns:
+    None
+    """
     dataset = PredictionDataset()
     dataset.load_folder(data_path=pred_folder_config['folder_path'],temporal_column='date')
     dataset.set_inflow(inflow_column=pred_folder_config['inflow_name'])
