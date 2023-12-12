@@ -5,7 +5,7 @@ from split_delay_time import delay_offset_add
 import tensorflow as tf
 import numpy as np
 import joblib
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 tf.get_logger().setLevel('ERROR')
 
@@ -131,4 +131,3 @@ if __name__ == '__main__':
 
 
 
-### TERMINADO EL DATASET, HABRÍA QUE ELIMINAR EL CAUDAL ALIVIADERO Y TAL, CREAR UNO CON LAS SALIDAS ÚNICAMENTE PARA QUITARLAS DEL MODELO DE ENTRADA Y ASÍ SIMULAR EL CORRECTO

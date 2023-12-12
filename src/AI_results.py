@@ -1,14 +1,12 @@
 import numpy as np
 import pandas as pd
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from sklearn.metrics import confusion_matrix, mean_squared_error
+from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from split_delay_time import sliding_window
 from typing import Dict
 import hydroeval
-from graphics import Graficas
-import time
 
 from typing import Union,Any
 

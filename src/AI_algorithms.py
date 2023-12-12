@@ -2,17 +2,9 @@ import os
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras import layers, regularizers
 from tensorflow.keras.callbacks import Callback,EarlyStopping,ModelCheckpoint
 from tensorflow.keras.layers import LSTM, Dense,BatchNormalization,Dropout
-import hydroeval
-import pandas as pd
-from sklearn.metrics import confusion_matrix, mean_squared_error
-from sklearn.preprocessing import MinMaxScaler
-from typing import Dict,Any,Optional,Union,List
-from IPython import display
-from matplotlib import pyplot as plt
-from datetime import datetime
+from typing import Dict, List
 
 
 
@@ -82,14 +74,9 @@ def lstm_create(param_config: dict) -> Sequential:
 
 
 def save_model(model, folder='models', model_name='LSTM_model'):
-    # Check if the folder exists, create it if not
     if not os.path.exists(folder):
         os.makedirs(folder)
-
-    # Path to save the model
     model_path = os.path.join(folder, f"{model_name}.keras")
-
-    # Save the model to the specified path
     model.save(model_path)
     print(f"Model saved to {model_path}")
 
