@@ -38,7 +38,7 @@ def train(pred_config:dict()=None)-> None:
             'label_width': 1,
             'act': 'linear',
             'batch_size': 32,
-            'epochs' :10}
+            'epochs' :500}
     print(f'\n\n{"*"*50} Loading Dataset {"*"*50}\n\n')
     DamRegisters = RainfallDataset()
     DamRegisters.load_folder(data_path=pred_config['folder_path'],temporal_column='date')

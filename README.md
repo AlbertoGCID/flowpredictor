@@ -1,5 +1,24 @@
 # LSTM Rainfall Prediction
 
+```
+└── 📁src
+    └── AI_algorithms.py
+    └── AI_results.py
+    └── __init__.py
+    └── data_load.py
+    └── main.py
+    └── split_delay_time.py
+    └── test.py
+    └── 📁models
+        └── inputLSTM.keras
+        └── outputLSTM.keras
+    └── 📁scaler
+        └── inflow_train_scaler.pkl
+        └── outflow_train_scaler.pkl
+        └── x_train_scaler.pkl
+
+```
+
 ## Overview
 
 This project provides a RainfallDataset class and utility functions for time series prediction using Long Short-Term Memory (LSTM) networks. The main function `main()` serves as a script for training and prediction. The script is designed to be run from the command line, accepting various arguments for configuration.
