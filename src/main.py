@@ -31,14 +31,14 @@ def train(pred_config:dict()=None)-> None:
     param_config = {
             'num_layers': 1,
             'units': 24,
-            'batchnorm': 1,
+            'batchnorm': 0,
             'dropout': 1,
-            'dropout_rate': 0.5,
+            'dropout_rate': 0.2,
             'seed': 42,
             'label_width': 1,
             'act': 'linear',
             'batch_size': 32,
-            'epochs' :500}
+            'epochs' :300}
     print(f'\n\n{"*"*50} Loading Dataset {"*"*50}\n\n')
     DamRegisters = RainfallDataset()
     DamRegisters.load_folder(data_path=pred_config['folder_path'],temporal_column='date')
@@ -145,12 +145,12 @@ def main():
     parser.add_argument('--train_folder', default='datasets/train_folder/', help='Path to the training dataset')
     parser.add_argument('--predict_folder', default='datasets/predict_folder/', help='Path to the prediction dataset')
     parser.add_argument('--input_width', type=int, default=7, help='Width of the input window')
-    parser.add_argument('--offset', type=int, default=3, help='Offset between input and output')
+    parser.add_argument('--offset', type=int, default=0, help='Offset between input and output')
     parser.add_argument('--inflow_name', default='input', help='Name of the input column')
     parser.add_argument('--outflow_name', default='output', help='Name of the output column')
     parser.add_argument('--target', default='input', help='Name of the target column')
     parser.add_argument('--predict_only', action='store_true', help='Run prediction only')
-    parser.add_argument('--model_path', default='models/inflowLSTM.keras', help='Path to the trained model (optional for prediction)')
+    parser.add_argument('--model_path', default='models/inputLSTM.keras', help='Path to the trained model (optional for prediction)')
     parser.add_argument('--x_scaler_path', default='scaler/x_train_scaler.pkl', help='Path to the x_scaler (optional for prediction)')
     parser.add_argument('--inflow_scaler_path', default='scaler/inflow_train_scaler.pkl', help='Path to the inflow_scaler (optional for prediction)')
     parser.add_argument('--outflow_scaler_path', default='scaler/outflow_train_scaler.pkl', help='Path to the outflow_scaler (optional for prediction)')
@@ -171,9 +171,9 @@ def main():
         print(pred_config)
         train(pred_config=pred_config)
         if args.target == 'input':
-            model = model = load_keras_model(model_path='models/inflowLSTM.keras')
+            model = model = load_keras_model(model_path='models/inputLSTM.keras')
         else:
-            model = model = load_keras_model(model_path='models/outflowLSTM.keras')
+            model = model = load_keras_model(model_path='models/outputLSTM.keras')
         x_scaler = load_scaler(scaler_path='scaler/x_train_scaler.pkl')
         inflow_scaler = load_scaler(scaler_path='scaler/inflow_train_scaler.pkl')
         outflow_scaler = load_scaler(scaler_path='scaler/outflow_train_scaler.pkl')

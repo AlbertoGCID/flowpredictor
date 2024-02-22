@@ -74,5 +74,9 @@ python main.py --train_folder datasets/train_folder/ --input_width 7 --offset 3 
 python main.py --predict_folder datasets/predict_folder/ --input_width 7 --offset 3 --inflow_name input --outflow_name output --target input --predict_only --model_path models/inflowLSTM.keras --x_scaler_path scaler/x_train_scaler.pkl --inflow_scaler_path scaler/inflow_train_scaler.pkl --outflow_scaler_path scaler/outflow_train_scaler.pkl
 ```
 
-## License
+# Acknowledgments
+
+This study forms part of the Marine Science programme (ThinkInAzul) supported by Ministerio de Ciencia e Innovación and Xunta de Galicia with funding from European Union NextGenerationEU (PRTR-C17.I1) and European Maritime and Fisheries Fund
+
+# License
 This project is licensed under the GNU General Public License, version 3 - see the LICENSE file for details.
