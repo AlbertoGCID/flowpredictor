@@ -1,0 +1,135 @@
+# experiments_config.toml
+#
+# Single source of configuration for the experiments. Absolute paths are
+# resolved in src/config_schema.py from the location of this file -- only
+# relative fragments go here, never machine-specific paths.
+# These are the exact values used to produce the published results.
+
+[paths]
+result_path_rel = "resultados"
+data_bundle_root_rel = "datasets/normalizados"
+results_csv_name = "results_consolidated.csv"
+predictions_dir_name = "predictions"
+doc_dir_name = "doc"
+cache_root_name = "tests63"
+
+[meta]
+numero_prueba = "63"
+
+[cv]
+split_label = "JunioExpanding"
+loyo_split_label = "Junio"
+dataset_start_year = 2014
+expanding_cv_years = [2017, 2018, 2019, 2020, 2021, 2022, 2023]
+loyo_cv_years = [2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023]
+holdout_year = 2025
+# Warm-up hydrological years consumed by the classifier's internal OOF loop
+# before any internal validation year is available.
+burnin_years = 3
+
+[holdout]
+# D_dev/D_holdout split: D_dev < cutoff_date <= D_holdout.
+cutoff_date = "2024-07-01"
+
+[base_hyperparameters]
+algorithms = "rf_regressor"
+loss_name = ["original_mae", "pinball_from_penalty"]
+penalty = [0, 2, 4, 6, 8, 10]
+contextos = 30
+offsets = 1
+steps = 1
+overstep = 0
+batch_size = 64
+max_epochs = 100
+max_epochs_clasificador = 10
+# Early stopping on train_loss (the pipeline has no validation split, see
+# models/training.py). Opt-in through Iteration.
+early_stopping_patience = 10
+early_stopping_min_delta = 1e-4
+lr = 0.001
+dropout = false
+l2_options = false
+coef_de_pond = 0.5
+umbrales = 0
+eval_threshold = "p90"
+seed = 92
+
+[schema]
+metric_columns = ["NSE", "KGE", "HitRatio", "FARate", "FARatio", "F1", "Precision", "Recall"]
+robustness_columns = [
+    "n_replicas", "frac", "mean_abs_deviation_from_baseline",
+    "mean_std_across_replicas", "max_std_across_replicas",
+    "delta_hit_ratio", "delta_farate",
+]
+
+[robustness]
+n_replicas = 50
+uniform_frac = 0.10
+gaussian_frac = 0.05
+seed = 92
+
+[dataset]
+# Paths relative to the parent directory of flowpredictor, which must be the cwd
+# when dataset_generator.py runs.
+root_raw = "flowpredictor/datasets/dataset_completo_2009_2025.csv"
+root_out = "flowpredictor/datasets/normalizados"
+random_seed = 92
+noise_frac = 0.10
+target_col = "Qe"
+rain_pred_prefixes = ["l/m2", "pred"]
+
+[reporting]
+dpi = 300
+figsize_wide = [10, 5]
+ablation_order = ["M1", "M2", "M3", "M4", "M5"]
+baseline_order = ["quantile_regression", "gradient_boosting_quantile", "heuristic_ensemble"]
+expanding_cv_year_range = [2017, 2023]
+
+# encoder_units = decoder_units = 32 for all five configurations. M2/M4 use
+# penalty=[2]: with use_rf=false, _run_single_config only evaluates preds[0]
+# (penalty=2, since penalty=0 is dropped for pinball_from_penalty), so training
+# penalties 4/6/8/10 there would be computation without a consumer.
+[ablation_variants.M1]
+description = "Sin pretrain, MAE original, sin RF"
+use_pretrain = false
+use_rf = false
+loss_name = "original_mae"
+penalty = [0]
+encoder_units = 32
+decoder_units = 32
+
+[ablation_variants.M2]
+description = "Sin pretrain, pinball asimétrica, sin RF"
+use_pretrain = false
+use_rf = false
+loss_name = "pinball_from_penalty"
+penalty = [2]
+encoder_units = 32
+decoder_units = 32
+
+[ablation_variants.M3]
+description = "Con pretrain, MAE original, sin RF"
+use_pretrain = true
+use_rf = false
+loss_name = "original_mae"
+penalty = [0]
+encoder_units = 32
+decoder_units = 32
+
+[ablation_variants.M4]
+description = "Con pretrain, pinball asimétrica, sin RF"
+use_pretrain = true
+use_rf = false
+loss_name = "pinball_from_penalty"
+penalty = [2]
+encoder_units = 32
+decoder_units = 32
+
+[ablation_variants.M5]
+description = "Completo (pretrain + pinball asimétrica + RF)"
+use_pretrain = true
+use_rf = true
+loss_name = "pinball_from_penalty"
+penalty = [0, 2, 4, 6, 8, 10]
+encoder_units = 32
+decoder_units = 32

@@ -1,0 +1,61 @@
+# ---------------------------------------------------------------------------
+# Python / tooling
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+*.dll
+*.pyd
+
+# Virtual environments and local settings
+.env
+**/.env
+.venv/
+**/.venv
+venv/
+env/
+.vscode/
+.idea/
+
+# ---------------------------------------------------------------------------
+# Data (not redistributed; see README "Data")
+# ---------------------------------------------------------------------------
+datasets/
+resources/rpy2/
+MAEB/
+
+# ---------------------------------------------------------------------------
+# Model checkpoints and experiment caches
+# ---------------------------------------------------------------------------
+*.h5
+*.hdf5
+*.keras
+*.pt
+*.pth
+*.ckpt
+*.pkl
+**/tests[0-9][0-9]/
+resultados/prueba63/models_saved/
+resultados/prueba63/predictions/
+results/
+backups/
+backup_antiguo/
+
+# ---------------------------------------------------------------------------
+# Logs, backups and local scratch files
+# ---------------------------------------------------------------------------
+*.log
+*.bak
+*.tmp
+*_backup.csv
+*.pre_*.tex
+*.docx
+
+# Configuration and metadata stay versioned
+!*.toml
+!*.json
